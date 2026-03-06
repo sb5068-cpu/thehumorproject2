@@ -42,8 +42,47 @@ export default function AdminDashboard() {
     router.refresh()
   }
 
-  // Placeholder for the "Create" function we will build next
-  const addImage = () => alert("Create Image Modal coming next!")
+// --- IMAGE CRUD ACTIONS ---
+
+  // 1. CREATE: Add a new image
+  const handleCreateImage = async () => {
+    const url = window.prompt("Enter the Image URL:")
+    if (!url) return // Exit if they cancel
+
+    const { data, error } = await supabase
+      .from('images')
+      .insert([{ url: url }])
+      .select()
+
+    if (error) {
+      alert(`Error creating image: ${error.message}`)
+    } else if (data) {
+      setImages([data[0], ...images]) // Add new image to the top of the list
+      alert("Image added successfully!")
+    }
+  }
+
+  // 2. DELETE: Remove an image
+  const handleDeleteImage = async (id: string) => {
+    const confirmed = window.confirm("Are you sure? This will permanently delete this image from the database.")
+
+    if (confirmed) {
+      const { error } = await supabase
+        .from('images')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        alert(`Error deleting: ${error.message}`)
+      } else {
+        // Filter the deleted image out of the current state
+        setImages(images.filter((img) => img.id !== id))
+      }
+    }
+  }
+
+  // 3. UPDATE: Placeholder for now
+  const handleUpdateImage = (id: string) => alert(`Update logic for ${id} coming soon!`)
 
   return (
     <AdminGuard>
