@@ -20,15 +20,15 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setLoading(true)
 
-      // Fetch Profiles - Using * to prevent crashes
-      const { data: pData } = await supabase.from('profiles').select('*').limit(10)
+      // 1. Profiles with Superadmin column
+      const { data: pData } = await supabase.from('profiles').select('id, email, username, is_superadmin').limit(10)
       if (pData) setProfiles(pData)
 
-      // Fetch Images
+      // 2. Images (Limiting to 20 for speed)
       const { data: iData } = await supabase.from('images').select('*').limit(20)
       if (iData) setImages(iData)
 
-      // Fetch Captions
+      // 3. Captions
       const { data: cData } = await supabase.from('captions').select('*').limit(10)
       if (cData) setCaptions(cData)
 
@@ -42,7 +42,6 @@ export default function AdminDashboard() {
     window.location.href = '/login'
   }
 
-  // --- IMAGE CRUD ---
   const handleCreateImage = async () => {
     const url = window.prompt("Image URL:")
     if (!url) return
@@ -68,16 +67,16 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
+      <main className="min-h-screen bg-black text-white p-6 md:p-12">
         <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
           <h1 className="text-4xl md:text-6xl font-black italic uppercase">Admin Hub</h1>
-          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black transition-all">
+          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black">
             Sign Out
           </button>
         </header>
 
         {loading ? (
-          <div className="text-2xl font-black animate-pulse uppercase">Syncing...</div>
+          <div className="text-2xl font-black animate-pulse">SYNCING DATA...</div>
         ) : (
           <div className="space-y-16">
 
@@ -90,17 +89,15 @@ export default function AdminDashboard() {
                     <tr>
                       <th className="p-3">User ID</th>
                       <th className="p-3">Details</th>
-                      <th className="p-3 text-center">Superadmin?</th>
+                      <th className="p-3">Superadmin?</th>
                     </tr>
                   </thead>
                   <tbody className="font-bold">
                     {profiles.map(p => (
                       <tr key={p.id} className="border-b border-zinc-800">
-                        <td className="p-3 text-[10px] font-mono text-zinc-400">{p.id}</td>
-                        <td className="p-3 uppercase text-sm">{p.username || p.email || 'Member Access'}</td>
-                        <td className="p-3 text-center text-sm">
-                          {p.is_superadmin === true ? '✅ YES' : p.is_superadmin === false ? '❌ NO' : '—'}
-                        </td>
+                        <td className="p-3 text-[10px] font-mono">{p.id}</td>
+                        <td className="p-3 uppercase text-sm">{p.username || p.email || 'Active User'}</td>
+                        <td className="p-3 text-sm">{p.is_superadmin ? '✅ YES' : '❌ NO'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -111,35 +108,34 @@ export default function AdminDashboard() {
             {/* IMAGE ASSETS */}
             <section className="border-4 border-blue-600 p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-black uppercase text-blue-600 italic">Image Assets</h2>
-                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all shadow-[4px_4px_0px_white] border-2 border-transparent">
-                  + Add Asset
-                </button>
+                <h2 className="text-3xl font-black uppercase text-blue-600">Image Assets</h2>
+                <button onClick={handleCreateImage} className="bg-blue-600 px-4 py-2 font-black uppercase">+ Add</button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {images.length > 0 ? images.map((img) => (
-                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2 group hover:border-blue-500 transition-all">
-                    <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center p-1">
+                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2">
+                    <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center text-[8px] text-zinc-500 break-all p-1">
                       {img.url ? (
-                        <img src={img.url} className="w-full h-full object-cover" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
+                        <img src={img.url} className="w-full h-full object-cover mb-1" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
                       ) : null}
-                      <span className="text-[8px] text-zinc-600 break-all text-center">{img.url || 'No URL Found'}</span>
+                      {/* Displays the URL text as a backup if image fails */}
+                      <span className="text-center">{img.url || 'No URL'}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1">
-                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-700 py-1 text-[10px] font-black uppercase hover:bg-white hover:text-black">Edit</button>
-                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-black uppercase hover:bg-red-600 text-white">Delete</button>
+                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-700 py-1 text-[10px] font-bold uppercase hover:bg-white hover:text-black">Edit</button>
+                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-bold uppercase hover:bg-red-600 text-white">Delete</button>
                     </div>
                   </div>
-                )) : <p className="italic text-zinc-500 p-4 border-2 border-dashed border-zinc-800 col-span-full text-center uppercase font-black">Waiting for assets...</p>}
+                )) : <p className="italic text-zinc-600">No images returned from database.</p>}
               </div>
             </section>
 
-            {/* GLOBAL CAPTIONS */}
+            {/* CAPTIONS */}
             <section>
-              <h2 className="text-3xl font-black uppercase mb-4 text-green-500 italic underline">Global Captions</h2>
+              <h2 className="text-2xl font-black uppercase mb-4 text-green-500 italic">Global Captions</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {captions.map(c => (
-                  <div key={c.id} className="p-4 bg-zinc-900 border-l-8 border-green-500 font-bold italic shadow-lg">
+                  <div key={c.id} className="p-4 bg-zinc-900 border-l-8 border-green-500 font-bold italic">
                     "{c.content}"
                   </div>
                 ))}
