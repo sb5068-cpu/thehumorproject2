@@ -17,35 +17,48 @@ export default function AdminDashboard() {
   )
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Check if session exists first to avoid "Silent Fails"
+    async function startApp() {
+      // 1. Check for session first
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return // AdminGuard will handle the redirect
+
+      if (!session) {
+        console.log("No session found, allowing AdminGuard to redirect...")
+        return
+      }
 
       setLoading(true)
 
-      // Fetch all with * to ensure nothing breaks
-      const { data: pData } = await supabase.from('profiles').select('*').limit(10)
-      if (pData) setProfiles(pData)
+      // 2. Fetch Data - Using * to ensure we don't crash on missing columns
+      try {
+        const [resProfiles, resImages, resCaptions] = await Promise.all([
+          supabase.from('profiles').select('*').limit(10),
+          supabase.from('images').select('*').limit(20),
+          supabase.from('captions').select('*').limit(10)
+        ])
 
-      const { data: iData } = await supabase.from('images').select('*').limit(20)
-      if (iData) setImages(iData)
-
-      const { data: cData } = await supabase.from('captions').select('*').limit(10)
-      if (cData) setCaptions(cData)
-
-      setLoading(false)
+        if (resProfiles.data) setProfiles(resProfiles.data)
+        if (resImages.data) setImages(resImages.data)
+        if (resCaptions.data) setCaptions(resCaptions.data)
+      } catch (err) {
+        console.error("Data Fetch Error:", err)
+      } finally {
+        setLoading(false)
+      }
     }
-    fetchData()
+
+    startApp()
   }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    // Using a cleaner redirect to prevent loops
+    router.replace('/login')
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
   }
 
-  // IMAGE CRUD
+  // --- IMAGE CRUD ---
   const handleCreateImage = async () => {
     const url = window.prompt("Image URL:")
     if (!url) return
@@ -74,13 +87,16 @@ export default function AdminDashboard() {
       <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
         <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
           <h1 className="text-4xl md:text-6xl font-black italic uppercase">Admin Hub</h1>
-          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black transition-all">
+          <button
+            onClick={handleSignOut}
+            className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black"
+          >
             Sign Out
           </button>
         </header>
 
         {loading ? (
-          <div className="text-2xl font-black animate-pulse uppercase">Verifying Access...</div>
+          <div className="text-2xl font-black animate-pulse uppercase">Accessing Database...</div>
         ) : (
           <div className="space-y-16">
 
@@ -116,13 +132,11 @@ export default function AdminDashboard() {
             <section className="border-4 border-blue-600 p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-black uppercase text-blue-600 italic">Image Assets</h2>
-                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all border-2 border-transparent">
-                  + Add Asset
-                </button>
+                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-4 py-2 font-black uppercase shadow-[4px_4px_0px_white]">+ Add Asset</button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {images.length > 0 ? images.map((img) => (
-                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2 group hover:border-blue-500 transition-all">
+                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2 group">
                     <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center p-1">
                       {img.url ? (
                         <img src={img.url} className="w-full h-full object-cover" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
@@ -134,7 +148,7 @@ export default function AdminDashboard() {
                       <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-black uppercase hover:bg-red-600 text-white">Delete</button>
                     </div>
                   </div>
-                )) : <p className="italic text-zinc-500 col-span-full text-center py-10 uppercase font-black">Waiting for assets...</p>}
+                )) : <p className="italic text-zinc-500 col-span-full text-center py-10">Waiting for assets...</p>}
               </div>
             </section>
 
