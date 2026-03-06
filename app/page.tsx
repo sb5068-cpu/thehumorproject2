@@ -104,28 +104,60 @@ export default function AdminDashboard() {
               </div>
             </section>
 
-            {/* IMAGE ASSETS (CRUD) */}
+            {/* 2. CRUD IMAGES */}
             <section className="border-4 border-blue-600 p-6">
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-4xl font-black uppercase text-blue-600 italic">Image Assets</h2>
-                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-6 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all shadow-[4px_4px_0px_white]">
+                <button
+                  onClick={handleCreateImage}
+                  className="bg-blue-600 text-white px-6 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all shadow-[4px_4px_0px_white]"
+                >
                   + Add Asset
                 </button>
               </div>
+
+              {/* Check if images exists and has items */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {images.map(img => (
-                  <div key={img.id} className="border-2 border-zinc-700 bg-zinc-900 p-4 group hover:border-blue-500 transition-all">
-                    <div className="aspect-video w-full bg-black mb-4 overflow-hidden border border-zinc-800">
-                      {img.url ? (
-                        <img src={img.url} alt="asset" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      ) : <div className="h-full flex items-center justify-center text-zinc-600 uppercase font-black italic text-xs">Broken Link</div>}
+                {images && images.length > 0 ? (
+                  images.map((img) => (
+                    <div key={img?.id || Math.random()} className="border-2 border-zinc-700 bg-zinc-900 p-4">
+                      <div className="aspect-video w-full bg-black mb-4 overflow-hidden border border-zinc-800 flex items-center justify-center">
+                        {img?.url ? (
+                          <img
+                            src={img.url}
+                            alt="asset"
+                            className="w-full h-full object-cover"
+                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                          />
+                        ) : (
+                          <span className="text-zinc-600 text-[10px] uppercase font-bold">No URL Data</span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleUpdateImage(img?.id, img?.url || '')}
+                          className="bg-zinc-800 py-2 text-xs font-black uppercase hover:bg-white hover:text-black transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteImage(img?.id)}
+                          className="bg-red-900 py-2 text-xs font-black uppercase hover:bg-red-600 text-white transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {/* Debugging: Show the ID underneath if buttons are missing */}
+                      <p className="text-[10px] text-zinc-600 mt-2 font-mono truncate">ID: {img?.id}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-800 py-2 text-xs font-black uppercase hover:bg-white hover:text-black">Edit</button>
-                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-2 text-xs font-black uppercase hover:bg-red-600 text-white">Delete</button>
-                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-800">
+                    <p className="text-xl font-black uppercase text-zinc-500 italic">No image assets returned from database</p>
                   </div>
-                ))}
+                )}
               </div>
             </section>
 
