@@ -43,12 +43,14 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
           {/* ADD THIS BUTTON */}
           <button
-            onClick={() => supabase.auth.signInWithOAuth({
-              provider: 'google',
-              options: {
-                redirectTo: window.location.origin // This sends you back to the dashboard after login
-              }
-            })}
+            onClick={async () => {
+              await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                  redirectTo: `${window.location.origin}/auth/callback`,
+                },
+              })
+            }}
             className="bg-black text-white px-8 py-4 font-black uppercase border-4 border-white hover:bg-white hover:text-black transition-all"
           >
             Sign in with Google
