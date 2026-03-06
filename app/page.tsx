@@ -120,10 +120,16 @@ export default function AdminDashboard() {
         </section>
 
         {/* 2. CREATE/READ/UPDATE/DELETE IMAGES */}
+        {/* 2. CREATE/READ/UPDATE/DELETE IMAGES */}
         <section className="mb-12 border-4 border-blue-600 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-3xl font-black uppercase text-blue-600">Image Assets (Full CRUD)</h2>
-            <button onClick={addImage} className="bg-blue-600 px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all">
+
+            {/* CHANGED THIS FROM addImage TO handleCreateImage */}
+            <button
+              onClick={handleCreateImage}
+              className="bg-blue-600 px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all"
+            >
               + Add New Image
             </button>
           </div>
