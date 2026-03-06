@@ -20,16 +20,14 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setLoading(true)
 
-      // 1. Fetch Profiles (Users)
-      const { data: pData } = await supabase.from('profiles').select('*').limit(5)
+      // Basic Read for all three tables
+      const { data: pData } = await supabase.from('profiles').select('*')
       if (pData) setProfiles(pData)
 
-      // 2. Fetch Images (using 'url')
-      const { data: iData } = await supabase.from('images').select('*').order('created_at', { ascending: false }).limit(6)
+      const { data: iData } = await supabase.from('images').select('*').limit(20)
       if (iData) setImages(iData)
 
-      // 3. Fetch Captions (using 'content')
-      const { data: cData } = await supabase.from('captions').select('*').limit(10)
+      const { data: cData } = await supabase.from('captions').select('*').limit(20)
       if (cData) setCaptions(cData)
 
       setLoading(false)
@@ -39,134 +37,71 @@ export default function AdminDashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.refresh()
+    window.location.href = '/login' // Hard redirect to fix the sign-out issue
   }
 
-  // --- IMAGE CRUD ---
+  const handleDeleteImage = async (id: any) => {
+    if (!window.confirm("Delete image?")) return
+    const { error } = await supabase.from('images').delete().eq('id', id)
+    if (error) alert(error.message)
+    else setImages(images.filter(img => img.id !== id))
+  }
+
   const handleCreateImage = async () => {
-    const url = window.prompt("Paste the new Image URL:")
+    const url = window.prompt("Image URL:")
     if (!url) return
     const { data, error } = await supabase.from('images').insert([{ url }]).select()
     if (error) alert(error.message)
     else if (data) setImages([data[0], ...images])
   }
 
-  const handleUpdateImage = async (id: string, currentUrl: string) => {
-    const newUrl = window.prompt("Update Image URL:", currentUrl)
-    if (!newUrl || newUrl === currentUrl) return
-    const { error } = await supabase.from('images').update({ url: newUrl }).eq('id', id)
-    if (error) alert(error.message)
-    else setImages(images.map(img => img.id === id ? { ...img, url: newUrl } : img))
-  }
-
-  const handleDeleteImage = async (id: string) => {
-    if (!window.confirm("Permanently delete this image?")) return
-    const { error } = await supabase.from('images').delete().eq('id', id)
-    if (error) alert(error.message)
-    else setImages(images.filter(img => img.id !== id))
-  }
-
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
-        <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
-          <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter">Admin Hub</h1>
-          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-transparent hover:border-black transition-all">
-            Sign Out
-          </button>
+      <main className="min-h-screen bg-black text-white p-8">
+        <header className="flex justify-between border-b-4 border-white pb-4 mb-8">
+          <h1 className="text-4xl font-black uppercase">Admin Hub</h1>
+          <button onClick={handleSignOut} className="bg-red-600 px-4 py-1 font-bold uppercase">Sign Out</button>
         </header>
 
         {loading ? (
-          <div className="text-2xl font-black animate-pulse uppercase">Accessing Database...</div>
+          <p className="animate-pulse">LOADING...</p>
         ) : (
-          <div className="space-y-20">
-
-            {/* USER REGISTRY */}
+          <div className="space-y-12">
+            {/* USERS */}
             <section>
-              <h2 className="text-3xl font-black uppercase mb-4 text-red-600 italic underline decoration-4">User Registry</h2>
-              <div className="border-4 border-white">
-                <table className="w-full text-left">
-                  <thead className="bg-white text-black uppercase font-black">
-                    <tr>
-                      <th className="p-3">User ID</th>
-                      <th className="p-3">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {profiles.map(p => (
-                      <tr key={p.id} className="border-b border-zinc-800">
-                        <td className="p-3 font-mono text-xs">{p.id}</td>
-                        <td className="p-3 text-zinc-400">{p.username || p.email || 'Active User'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <h2 className="text-2xl font-bold uppercase mb-2">Users</h2>
+              <div className="bg-zinc-900 p-4 border border-zinc-700">
+                {profiles.map(p => <div key={p.id}>{p.username || p.email || p.id}</div>)}
               </div>
             </section>
 
-            {/* 2. CRUD IMAGES */}
-            <section className="border-4 border-blue-600 p-6">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-4xl font-black uppercase text-blue-600 italic">Image Assets</h2>
-                <button
-                  onClick={handleCreateImage}
-                  className="bg-blue-600 text-white px-6 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all shadow-[4px_4px_0px_white]"
-                >
-                  + Add Asset
-                </button>
+            {/* IMAGES */}
+            <section className="border-4 border-blue-600 p-4">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-2xl font-bold uppercase">Images</h2>
+                <button onClick={handleCreateImage} className="bg-blue-600 px-3 py-1 text-sm font-bold">+ ADD</button>
               </div>
-
-              {/* Check if images exists and has items */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {images && images.length > 0 ? (
-                  images.map((img) => (
-                    <div key={img?.id || Math.random()} className="border-2 border-zinc-700 bg-zinc-900 p-4">
-                      <div className="aspect-video w-full bg-black mb-4 overflow-hidden border border-zinc-800 flex items-center justify-center">
-                        {img?.url ? (
-                          <img
-                            src={img.url}
-                            alt="asset"
-                            className="w-full h-full object-cover"
-                            onError={(e) => (e.currentTarget.style.display = 'none')}
-                          />
-                        ) : (
-                          <span className="text-zinc-600 text-[10px] uppercase font-bold">No URL Data</span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleUpdateImage(img?.id, img?.url || '')}
-                          className="bg-zinc-800 py-2 text-xs font-black uppercase hover:bg-white hover:text-black transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteImage(img?.id)}
-                          className="bg-red-900 py-2 text-xs font-black uppercase hover:bg-red-600 text-white transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-
-                      {/* Debugging: Show the ID underneath if buttons are missing */}
-                      <p className="text-[10px] text-zinc-600 mt-2 font-mono truncate">ID: {img?.id}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-800">
-                    <p className="text-xl font-black uppercase text-zinc-500 italic">No image assets returned from database</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {images.map((img) => (
+                  <div key={img.id} className="bg-zinc-800 p-2 border border-zinc-600">
+                    <img src={img.url} className="w-full aspect-square object-cover mb-2" alt="" />
+                    <button
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="w-full bg-red-700 text-[10px] py-1 font-bold hover:bg-red-500"
+                    >
+                      DELETE
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
             </section>
 
-            {/* GLOBAL CAPTIONS */}
+            {/* CAPTIONS */}
             <section>
-              <h2 className="text-3xl font-black uppercase mb-6 text-green-500 italic underline decoration-4">Global Captions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h2 className="text-2xl font-bold uppercase mb-2 text-green-500">Captions</h2>
+              <div className="space-y-2">
                 {captions.map(c => (
-                  <div key={c.id} className="p-6 bg-zinc-900 border-l-[12px] border-green-500 font-bold italic text-xl shadow-lg">
+                  <div key={c.id} className="bg-zinc-900 p-2 border-l-4 border-green-500 italic text-sm">
                     "{c.content}"
                   </div>
                 ))}
