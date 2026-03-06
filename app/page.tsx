@@ -18,17 +18,19 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Check if session exists first to avoid "Silent Fails"
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return // AdminGuard will handle the redirect
+
       setLoading(true)
 
-      // 1. Profiles with Superadmin column
-      const { data: pData } = await supabase.from('profiles').select('id, email, username, is_superadmin').limit(10)
+      // Fetch all with * to ensure nothing breaks
+      const { data: pData } = await supabase.from('profiles').select('*').limit(10)
       if (pData) setProfiles(pData)
 
-      // 2. Images (Limiting to 20 for speed)
       const { data: iData } = await supabase.from('images').select('*').limit(20)
       if (iData) setImages(iData)
 
-      // 3. Captions
       const { data: cData } = await supabase.from('captions').select('*').limit(10)
       if (cData) setCaptions(cData)
 
@@ -39,9 +41,11 @@ export default function AdminDashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/login'
+    router.push('/login')
+    router.refresh()
   }
 
+  // IMAGE CRUD
   const handleCreateImage = async () => {
     const url = window.prompt("Image URL:")
     if (!url) return
@@ -67,37 +71,40 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white p-6 md:p-12">
+      <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
         <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
           <h1 className="text-4xl md:text-6xl font-black italic uppercase">Admin Hub</h1>
-          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black">
+          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black transition-all">
             Sign Out
           </button>
         </header>
 
         {loading ? (
-          <div className="text-2xl font-black animate-pulse">SYNCING DATA...</div>
+          <div className="text-2xl font-black animate-pulse uppercase">Verifying Access...</div>
         ) : (
           <div className="space-y-16">
 
             {/* USER REGISTRY */}
             <section>
               <h2 className="text-3xl font-black uppercase mb-4 text-red-600 italic underline">User Registry</h2>
-              <div className="border-4 border-white overflow-hidden">
+              <div className="border-4 border-white overflow-hidden bg-zinc-950">
                 <table className="w-full text-left">
                   <thead className="bg-white text-black uppercase font-black">
                     <tr>
-                      <th className="p-3">User ID</th>
-                      <th className="p-3">Details</th>
-                      <th className="p-3">Superadmin?</th>
+                      <th className="p-3">User</th>
+                      <th className="p-3 text-center">Superadmin?</th>
                     </tr>
                   </thead>
                   <tbody className="font-bold">
                     {profiles.map(p => (
                       <tr key={p.id} className="border-b border-zinc-800">
-                        <td className="p-3 text-[10px] font-mono">{p.id}</td>
-                        <td className="p-3 uppercase text-sm">{p.username || p.email || 'Active User'}</td>
-                        <td className="p-3 text-sm">{p.is_superadmin ? '✅ YES' : '❌ NO'}</td>
+                        <td className="p-3 uppercase text-sm">
+                          <span className="block text-zinc-500 text-[10px] font-mono lowercase">{p.id}</span>
+                          {p.username || p.email || 'Active User'}
+                        </td>
+                        <td className="p-3 text-center text-sm">
+                          {p.is_superadmin ? '✅ YES' : '❌ NO'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -108,34 +115,35 @@ export default function AdminDashboard() {
             {/* IMAGE ASSETS */}
             <section className="border-4 border-blue-600 p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-black uppercase text-blue-600">Image Assets</h2>
-                <button onClick={handleCreateImage} className="bg-blue-600 px-4 py-2 font-black uppercase">+ Add</button>
+                <h2 className="text-3xl font-black uppercase text-blue-600 italic">Image Assets</h2>
+                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all border-2 border-transparent">
+                  + Add Asset
+                </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {images.length > 0 ? images.map((img) => (
-                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2">
-                    <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center text-[8px] text-zinc-500 break-all p-1">
+                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2 group hover:border-blue-500 transition-all">
+                    <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center p-1">
                       {img.url ? (
-                        <img src={img.url} className="w-full h-full object-cover mb-1" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
+                        <img src={img.url} className="w-full h-full object-cover" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
                       ) : null}
-                      {/* Displays the URL text as a backup if image fails */}
-                      <span className="text-center">{img.url || 'No URL'}</span>
+                      <span className="text-[8px] text-zinc-600 break-all text-center leading-tight">{img.url || 'No URL Found'}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1">
-                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-700 py-1 text-[10px] font-bold uppercase hover:bg-white hover:text-black">Edit</button>
-                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-bold uppercase hover:bg-red-600 text-white">Delete</button>
+                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-700 py-1 text-[10px] font-black uppercase hover:bg-white hover:text-black">Edit</button>
+                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-black uppercase hover:bg-red-600 text-white">Delete</button>
                     </div>
                   </div>
-                )) : <p className="italic text-zinc-600">No images returned from database.</p>}
+                )) : <p className="italic text-zinc-500 col-span-full text-center py-10 uppercase font-black">Waiting for assets...</p>}
               </div>
             </section>
 
-            {/* CAPTIONS */}
+            {/* GLOBAL CAPTIONS */}
             <section>
-              <h2 className="text-2xl font-black uppercase mb-4 text-green-500 italic">Global Captions</h2>
+              <h2 className="text-3xl font-black uppercase mb-4 text-green-500 italic underline">Global Captions</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {captions.map(c => (
-                  <div key={c.id} className="p-4 bg-zinc-900 border-l-8 border-green-500 font-bold italic">
+                  <div key={c.id} className="p-4 bg-zinc-900 border-l-8 border-green-500 font-bold italic shadow-lg">
                     "{c.content}"
                   </div>
                 ))}
