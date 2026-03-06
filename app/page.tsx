@@ -17,48 +17,36 @@ export default function AdminDashboard() {
   )
 
   useEffect(() => {
-    async function startApp() {
-      // 1. Check for session first
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        console.log("No session found, allowing AdminGuard to redirect...")
-        return
-      }
-
+    const fetchData = async () => {
       setLoading(true)
 
-      // 2. Fetch Data - Using * to ensure we don't crash on missing columns
-      try {
-        const [resProfiles, resImages, resCaptions] = await Promise.all([
-          supabase.from('profiles').select('*').limit(10),
-          supabase.from('images').select('*').limit(20),
-          supabase.from('captions').select('*').limit(10)
-        ])
+      // Basic Read for all three tables
+      const { data: pData } = await supabase.from('profiles').select('*')
+      if (pData) setProfiles(pData)
 
-        if (resProfiles.data) setProfiles(resProfiles.data)
-        if (resImages.data) setImages(resImages.data)
-        if (resCaptions.data) setCaptions(resCaptions.data)
-      } catch (err) {
-        console.error("Data Fetch Error:", err)
-      } finally {
-        setLoading(false)
-      }
+      const { data: iData } = await supabase.from('images').select('*').limit(20)
+      if (iData) setImages(iData)
+
+      const { data: cData } = await supabase.from('captions').select('*').limit(20)
+      if (cData) setCaptions(cData)
+
+      setLoading(false)
     }
-
-    startApp()
+    fetchData()
   }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    // Using a cleaner redirect to prevent loops
-    router.replace('/login')
-    setTimeout(() => {
-      window.location.reload()
-    }, 100)
+    window.location.href = '/login' // Hard redirect to fix the sign-out issue
   }
 
-  // --- IMAGE CRUD ---
+  const handleDeleteImage = async (id: any) => {
+    if (!window.confirm("Delete image?")) return
+    const { error } = await supabase.from('images').delete().eq('id', id)
+    if (error) alert(error.message)
+    else setImages(images.filter(img => img.id !== id))
+  }
+
   const handleCreateImage = async () => {
     const url = window.prompt("Image URL:")
     if (!url) return
@@ -67,103 +55,58 @@ export default function AdminDashboard() {
     else if (data) setImages([data[0], ...images])
   }
 
-  const handleUpdateImage = async (id: any, currentUrl: string) => {
-    const newUrl = window.prompt("Edit Image URL:", currentUrl)
-    if (!newUrl || newUrl === currentUrl) return
-    const { error } = await supabase.from('images').update({ url: newUrl }).eq('id', id)
-    if (error) alert(error.message)
-    else setImages(images.map(img => img.id === id ? { ...img, url: newUrl } : img))
-  }
-
-  const handleDeleteImage = async (id: any) => {
-    if (!window.confirm("Delete this image?")) return
-    const { error } = await supabase.from('images').delete().eq('id', id)
-    if (error) alert(error.message)
-    else setImages(images.filter(img => img.id !== id))
-  }
-
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
-        <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
-          <h1 className="text-4xl md:text-6xl font-black italic uppercase">Admin Hub</h1>
-          <button
-            onClick={handleSignOut}
-            className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black border-4 border-black"
-          >
-            Sign Out
-          </button>
+      <main className="min-h-screen bg-black text-white p-8">
+        <header className="flex justify-between border-b-4 border-white pb-4 mb-8">
+          <h1 className="text-4xl font-black uppercase">Admin Hub</h1>
+          <button onClick={handleSignOut} className="bg-red-600 px-4 py-1 font-bold uppercase">Sign Out</button>
         </header>
 
         {loading ? (
-          <div className="text-2xl font-black animate-pulse uppercase">Accessing Database...</div>
+          <p className="animate-pulse">LOADING...</p>
         ) : (
-          <div className="space-y-16">
-
-            {/* USER REGISTRY */}
+          <div className="space-y-12">
+            {/* USERS */}
             <section>
-              <h2 className="text-3xl font-black uppercase mb-4 text-red-600 italic underline">User Registry</h2>
-              <div className="border-4 border-white overflow-hidden bg-zinc-950">
-                <table className="w-full text-left">
-                  <thead className="bg-white text-black uppercase font-black">
-                    <tr>
-                      <th className="p-3">User</th>
-                      <th className="p-3 text-center">Superadmin?</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-bold">
-                    {profiles.map(p => (
-                      <tr key={p.id} className="border-b border-zinc-800">
-                        <td className="p-3 uppercase text-sm">
-                          <span className="block text-zinc-500 text-[10px] font-mono lowercase">{p.id}</span>
-                          {p.username || p.email || 'Active User'}
-                        </td>
-                        <td className="p-3 text-center text-sm">
-                          {p.is_superadmin ? '✅ YES' : '❌ NO'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <h2 className="text-2xl font-bold uppercase mb-2">Users</h2>
+              <div className="bg-zinc-900 p-4 border border-zinc-700">
+                {profiles.map(p => <div key={p.id}>{p.username || p.email || p.id}</div>)}
               </div>
             </section>
 
-            {/* IMAGE ASSETS */}
-            <section className="border-4 border-blue-600 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-black uppercase text-blue-600 italic">Image Assets</h2>
-                <button onClick={handleCreateImage} className="bg-blue-600 text-white px-4 py-2 font-black uppercase shadow-[4px_4px_0px_white]">+ Add Asset</button>
+            {/* IMAGES */}
+            <section className="border-4 border-blue-600 p-4">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-2xl font-bold uppercase">Images</h2>
+                <button onClick={handleCreateImage} className="bg-blue-600 px-3 py-1 text-sm font-bold">+ ADD</button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {images.length > 0 ? images.map((img) => (
-                  <div key={img.id} className="bg-zinc-900 border border-zinc-700 p-2 group">
-                    <div className="aspect-square w-full mb-2 bg-black border border-zinc-800 overflow-hidden flex flex-col items-center justify-center p-1">
-                      {img.url ? (
-                        <img src={img.url} className="w-full h-full object-cover" alt="asset" onError={(e) => e.currentTarget.style.display='none'} />
-                      ) : null}
-                      <span className="text-[8px] text-zinc-600 break-all text-center leading-tight">{img.url || 'No URL Found'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      <button onClick={() => handleUpdateImage(img.id, img.url)} className="bg-zinc-700 py-1 text-[10px] font-black uppercase hover:bg-white hover:text-black">Edit</button>
-                      <button onClick={() => handleDeleteImage(img.id)} className="bg-red-900 py-1 text-[10px] font-black uppercase hover:bg-red-600 text-white">Delete</button>
-                    </div>
-                  </div>
-                )) : <p className="italic text-zinc-500 col-span-full text-center py-10">Waiting for assets...</p>}
-              </div>
-            </section>
-
-            {/* GLOBAL CAPTIONS */}
-            <section>
-              <h2 className="text-3xl font-black uppercase mb-4 text-green-500 italic underline">Global Captions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {captions.map(c => (
-                  <div key={c.id} className="p-4 bg-zinc-900 border-l-8 border-green-500 font-bold italic shadow-lg">
-                    "{c.content}"
+                {images.map((img) => (
+                  <div key={img.id} className="bg-zinc-800 p-2 border border-zinc-600">
+                    <img src={img.url} className="w-full aspect-square object-cover mb-2" alt="" />
+                    <button
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="w-full bg-red-700 text-[10px] py-1 font-bold hover:bg-red-500"
+                    >
+                      DELETE
+                    </button>
                   </div>
                 ))}
               </div>
             </section>
 
+            {/* CAPTIONS */}
+            <section>
+              <h2 className="text-2xl font-bold uppercase mb-2 text-green-500">Captions</h2>
+              <div className="space-y-2">
+                {captions.map(c => (
+                  <div key={c.id} className="bg-zinc-900 p-2 border-l-4 border-green-500 italic text-sm">
+                    "{c.content}"
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
       </main>
