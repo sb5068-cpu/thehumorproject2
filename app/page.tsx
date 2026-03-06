@@ -1,89 +1,118 @@
 'use client'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import AdminGuard from '../components/AdminGuard'
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const [images, setImages] = useState<any[]>([])
+  const [profiles, setProfiles] = useState<any[]>([])
+  const [captions, setCaptions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+
+      // READ Profiles (Users)
+      const { data: profileData } = await supabase.from('profiles').select('*').limit(5)
+      if (profileData) setProfiles(profileData)
+
+      // READ Images
+      const { data: imageData } = await supabase.from('images').select('*').limit(5)
+      if (imageData) setImages(imageData)
+
+      // READ Captions
+      const { data: captionData } = await supabase.from('captions').select('*').limit(5)
+      if (captionData) setCaptions(captionData)
+
+      setLoading(false)
+    }
+    fetchData()
+  }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.refresh()
   }
 
-  // NOTE: These numbers are placeholders for the UI you saw.
-  // In a full build, you'd fetch these using useEffect.
-  const stats = [
-    { label: 'Total Images', value: '5539' },
-    { label: 'Captions', value: '70530' },
-    { label: 'Users', value: '2043' },
-  ]
+  // Placeholder for the "Create" function we will build next
+  const addImage = () => alert("Create Image Modal coming next!")
 
   return (
     <AdminGuard>
-      <main className="min-h-screen bg-black text-white font-sans p-6 md:p-12">
-        {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-8 border-white pb-6 mb-12">
-          <h1 className="text-7xl font-black italic uppercase tracking-tighter">
-            Admin Hub
-          </h1>
-          <button
-            onClick={handleSignOut}
-            className="mt-4 md:mt-0 bg-red-600 text-white px-8 py-3 font-black uppercase hover:bg-white hover:text-black transition-all border-4 border-transparent hover:border-black"
-          >
+      <main className="min-h-screen bg-black text-white p-6 md:p-12 font-sans">
+        <header className="flex justify-between items-center border-b-8 border-white pb-6 mb-12">
+          <h1 className="text-6xl font-black italic uppercase italic">Admin Hub</h1>
+          <button onClick={handleSignOut} className="bg-red-600 px-6 py-2 font-black uppercase hover:bg-white hover:text-black transition-all">
             Sign Out
           </button>
         </header>
 
-        {/* STATS GRID */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {stats.map((stat) => (
-            <div key={stat.label} className="border-4 border-white p-6">
-              <p className="text-sm font-bold uppercase tracking-widest text-gray-400">
-                {stat.label}
-              </p>
-              <p className="text-5xl font-black italic">{stat.value}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* REGISTRY SECTION */}
-        <section className="mb-16">
-          <h2 className="text-4xl font-black uppercase mb-6 italic underline decoration-red-600">
-            User Registry
-          </h2>
-          <div className="border-4 border-white overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white text-black uppercase font-black">
-                  <th className="p-4">Username</th>
-                  <th className="p-4">Role</th>
-                  <th className="p-4">Joined</th>
+        {/* 1. READ PROFILES (USERS) */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-black uppercase mb-4 text-red-600">User Registry (Read Only)</h2>
+          <div className="border-2 border-white">
+            <table className="w-full text-left">
+              <thead className="bg-white text-black uppercase font-black">
+                <tr>
+                  <th className="p-2">ID</th>
+                  <th className="p-2">Username</th>
+                  <th className="p-2">Superadmin?</th>
                 </tr>
               </thead>
-              <tbody className="font-bold">
-                <tr className="border-b border-gray-800">
-                  <td className="p-4">Admin_User_01</td>
-                  <td className="p-4 text-red-500 uppercase">Superadmin</td>
-                  <td className="p-4">2024-01-15</td>
-                </tr>
-                {/* More rows would be mapped here from your database */}
+              <tbody>
+                {profiles.map(p => (
+                  <tr key={p.id} className="border-b border-zinc-800">
+                    <td className="p-2 text-xs truncate max-w-[100px]">{p.id}</td>
+                    <td className="p-2 font-bold">{p.username || 'Anonymous'}</td>
+                    <td className="p-2">{p.is_superadmin ? '✅' : '❌'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </section>
 
-        {/* FOOTER NAV */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white text-black p-8 group hover:bg-red-600 hover:text-white transition-all cursor-pointer">
-            <h3 className="text-3xl font-black uppercase">Image Assets →</h3>
+        {/* 2. CREATE/READ/UPDATE/DELETE IMAGES */}
+        <section className="mb-12 border-4 border-blue-600 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-3xl font-black uppercase text-blue-600">Image Assets (Full CRUD)</h2>
+            <button onClick={addImage} className="bg-blue-600 px-4 py-2 font-black uppercase hover:bg-white hover:text-blue-600 transition-all">
+              + Add New Image
+            </button>
           </div>
-          <div className="bg-white text-black p-8 group hover:bg-red-600 hover:text-white transition-all cursor-pointer">
-            <h3 className="text-3xl font-black uppercase">Global Captions →</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {images.map(img => (
+              <div key={img.id} className="bg-zinc-900 p-4 flex justify-between items-center border border-zinc-700">
+                <div>
+                  <p className="font-bold truncate max-w-[200px]">{img.url || 'No URL'}</p>
+                  <p className="text-xs text-zinc-500">ID: {img.id}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="text-xs bg-zinc-700 px-2 py-1 hover:bg-white hover:text-black">EDIT</button>
+                  <button className="text-xs bg-red-900 px-2 py-1 hover:bg-red-600">DEL</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 3. READ CAPTIONS */}
+        <section>
+          <h2 className="text-3xl font-black uppercase mb-4 text-green-500">Global Captions (Read Only)</h2>
+          <div className="space-y-2">
+            {captions.map(c => (
+              <div key={c.id} className="p-3 border-l-4 border-green-500 bg-zinc-900 italic">
+                "{c.content || c.text}"
+              </div>
+            ))}
           </div>
         </section>
       </main>
