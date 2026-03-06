@@ -1,5 +1,5 @@
 'use client'
-import AdminGuard from '@/components/AdminGuard'
+import AdminGuard from '../components/AdminGuard'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 
