@@ -1,9 +1,3 @@
-Here is the complete, corrected app/page.tsx.
-
-I have made sure the Delete button is properly linked to the logic, and I've updated the Create button name to match the code so your build doesn't fail again. I also added a simple handleUpdateImage that lets you change an image URL.
-
-TypeScript
-
 'use client'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
