@@ -71,7 +71,7 @@ export default function DataTable({ columns, data, onEdit, onDelete, emptyMessag
           ) : (
             data.map((row, i) => (
               <tr
-                key={row.id ?? i}
+                key={String(row.id ?? i)}
                 style={{
                   borderBottom: '1px solid var(--border)',
                   transition: 'background 0.1s',
