@@ -1,63 +1,49 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { useEffect, useState, ReactNode } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
-export default function AdminGuard({ children }: { children: React.ReactNode }) {
-  const [authorized, setAuthorized] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+export default function AdminGuard({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<'loading' | 'authorized' | 'denied'>('loading')
+  const supabase = createClient()
 
   useEffect(() => {
-    async function checkUser() {
+    async function verify() {
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_superadmin')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.is_superadmin) {
-          setAuthorized(true)
-        }
+      if (!user) {
+        setStatus('denied')
+        return
       }
-      setLoading(false)
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_superadmin')
+        .eq('id', user.id)
+        .single()
+
+      setStatus(profile?.is_superadmin ? 'authorized' : 'denied')
     }
-    checkUser()
+    verify()
   }, [])
 
-  if (loading) return <div className="p-10 font-black italic">SHARPENING THE BLADES...</div>
+  if (status === 'loading') {
+    return <div className="bg-black text-white p-10 font-mono animate-pulse">BOOTING_CORE_SYSTEMS...</div>
+  }
 
-  if (!authorized) {
-      return (
-        <div className="h-screen flex flex-col items-center justify-center bg-red-500 text-white p-10 text-center">
-          <h1 className="text-6xl font-black uppercase mb-4 italic">Access Denied</h1>
-          <p className="font-bold max-w-md mb-8">
-            You are not marked as a Superadmin. Please log in with an authorized account.
-          </p>
-
-          {/* ADD THIS BUTTON */}
-          <button
-            onClick={async () => {
-              await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                  redirectTo: `${window.location.origin}/auth/callback`,
-                },
-              })
-            }}
-            className="bg-black text-white px-8 py-4 font-black uppercase border-4 border-white hover:bg-white hover:text-black transition-all"
-          >
-            Sign in with Google
-          </button>
-        </div>
-      )
-    }
+  if (status === 'denied') {
+    return (
+      <div className="h-screen bg-red-600 text-white p-20 flex flex-col justify-center border-[16px] border-black">
+        <h1 className="text-9xl font-black uppercase italic mb-4">No Entry</h1>
+        <p className="text-2xl font-bold mb-10 uppercase">Identity not verified in Superadmin Archive.</p>
+        <button
+          onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` }})}
+          className="bg-black text-white p-6 text-2xl font-black hover:bg-white hover:text-black transition-all w-fit"
+        >
+          FORCE_LOGIN_OAUTH
+        </button>
+      </div>
+    )
+  }
 
   return <>{children}</>
 }
