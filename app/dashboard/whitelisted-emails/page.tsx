@@ -6,7 +6,7 @@ import DataTable from '@/components/DataTable'
 import Modal from '@/components/Modal'
 
 // Note: update TABLE_NAME below if your table is named differently
-const TABLE_NAME = 'whitelisted_emails'
+const TABLE_NAME = 'whitelist_email_addresses'
 
 export default function WhitelistedEmailsPage() {
   const [rows, setRows] = useState<any[]>([])
