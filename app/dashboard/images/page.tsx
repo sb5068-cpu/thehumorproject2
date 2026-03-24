@@ -200,7 +200,7 @@ export default function ImagesPage() {
                 </div>
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {img.id?.slice(0, 8)}...
+                    {String(img.id ?? '').slice(0, 8)}...
                   </div>
                   {img.image_description && (
                     <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 8, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { insertFields, updateFields } from '@/lib/db-helpers'
 import PageHeader from '@/components/PageHeader'
 import DataTable from '@/components/DataTable'
 import Modal from '@/components/Modal'
@@ -23,9 +24,7 @@ export default function LLMModelsPage() {
       supabase.from('llm_models').select('*, llm_providers(name)').order('id'),
       supabase.from('llm_providers').select('*').order('name'),
     ])
-    setRows(models || [])
-    setProviders(provs || [])
-    setLoading(false)
+    setRows(models || []); setProviders(provs || []); setLoading(false)
   }
   useEffect(() => { load() }, [])
 
@@ -35,6 +34,7 @@ export default function LLMModelsPage() {
       name: form.name, llm_provider_id: Number(form.llm_provider_id) || null,
       provider_model_id: form.provider_model_id || null,
       is_temperature_supported: form.is_temperature_supported,
+      ...(await insertFields()),
     })
     setSaving(false)
     if (error) { alert(error.message); return }
@@ -47,6 +47,7 @@ export default function LLMModelsPage() {
       name: editRow.name, llm_provider_id: Number(editRow.llm_provider_id) || null,
       provider_model_id: editRow.provider_model_id || null,
       is_temperature_supported: editRow.is_temperature_supported,
+      ...(await updateFields()),
     }).eq('id', editRow.id)
     setSaving(false)
     if (error) { alert(error.message); return }
@@ -64,10 +65,7 @@ export default function LLMModelsPage() {
     { key: 'name', label: 'NAME', render: (v: string) => <strong>{v}</strong> },
     { key: 'llm_providers', label: 'PROVIDER', render: (v: any) => <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: 'var(--blue)' }}>{v?.name || '—'}</span> },
     { key: 'provider_model_id', label: 'MODEL ID', mono: true, render: (v: string) => <span style={{ fontSize: 11 }}>{v || '—'}</span> },
-    {
-      key: 'is_temperature_supported', label: 'TEMP',
-      render: (v: boolean) => <span style={{ color: v ? 'var(--green)' : 'var(--text3)' }}>{v ? '✓' : '—'}</span>
-    },
+    { key: 'is_temperature_supported', label: 'TEMP', render: (v: boolean) => <span style={{ color: v ? 'var(--green)' : 'var(--text3)' }}>{v ? '✓' : '—'}</span> },
   ]
 
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginBottom: 5, letterSpacing: '0.08em' }
@@ -103,12 +101,7 @@ export default function LLMModelsPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       <PageHeader title="LLM Models" subtitle="Manage language models used in the caption pipeline" count={rows.length}
-        action={
-          <button onClick={() => { setForm(blank); setShowCreate(true) }}
-            style={{ padding: '8px 18px', background: 'var(--accent)', border: 'none', borderRadius: 7, color: '#fff', fontWeight: 500, fontSize: 13 }}>
-            + New Model
-          </button>
-        }
+        action={<button onClick={() => { setForm(blank); setShowCreate(true) }} style={{ padding: '8px 18px', background: 'var(--accent)', border: 'none', borderRadius: 7, color: '#fff', fontWeight: 500, fontSize: 13 }}>+ New Model</button>}
       />
       <div style={{ padding: '20px 32px' }}>
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -116,31 +109,24 @@ export default function LLMModelsPage() {
             : <DataTable columns={columns} data={rows} onEdit={r => setEditRow({ ...r, llm_provider_id: r.llm_provider_id?.toString() })} onDelete={setDeleteRow} />}
         </div>
       </div>
-
       {showCreate && (
         <Modal title="New LLM Model" onClose={() => setShowCreate(false)} width={480}>
           <ModelForm data={form} onChange={(k, v) => setForm((f: any) => ({ ...f, [k]: v }))} />
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={() => setShowCreate(false)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text2)' }}>Cancel</button>
-            <button onClick={handleCreate} disabled={saving} style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', fontWeight: 500 }}>
-              {saving ? 'Saving...' : 'Create'}
-            </button>
+            <button onClick={handleCreate} disabled={saving} style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', fontWeight: 500 }}>{saving ? 'Saving...' : 'Create'}</button>
           </div>
         </Modal>
       )}
-
       {editRow && (
         <Modal title="Edit LLM Model" onClose={() => setEditRow(null)} width={480}>
           <ModelForm data={editRow} onChange={(k, v) => setEditRow((r: any) => ({ ...r, [k]: v }))} />
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={() => setEditRow(null)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text2)' }}>Cancel</button>
-            <button onClick={handleUpdate} disabled={saving} style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', fontWeight: 500 }}>
-              {saving ? 'Saving...' : 'Save'}
-            </button>
+            <button onClick={handleUpdate} disabled={saving} style={{ padding: '8px 20px', background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', fontWeight: 500 }}>{saving ? 'Saving...' : 'Save'}</button>
           </div>
         </Modal>
       )}
-
       {deleteRow && (
         <Modal title="Delete Model" onClose={() => setDeleteRow(null)} width={380}>
           <p style={{ color: 'var(--text2)', marginBottom: 20 }}>Delete model <strong style={{ color: 'var(--text)' }}>{deleteRow.name}</strong>? This may break flavor steps that reference it.</p>

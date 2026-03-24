@@ -27,14 +27,17 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const { pathname } = request.nextUrl
 
+  // Allow login page and auth callback
   if (pathname === '/login' || pathname.startsWith('/api/auth')) {
     return response
   }
 
+  // No session → redirect to login
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Check superadmin
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_superadmin')
