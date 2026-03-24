@@ -27,13 +27,11 @@ export default function HumorMixPage() {
 
   async function handleUpdate() {
     setSaving(true)
-    const { error } = const uf = await updateFields()
-    await supabase.from('humor_flavor_mix').update({
-      caption_count: Number(editRow.caption_count),
-      humor_flavor_id: Number(editRow.humor_flavor_id),
-    ...uf,
-    }).eq('id', editRow.id)
-    setSaving(false)
+    const { error } = await supabase.from('humor_flavor_mix').update({
+          caption_count: Number(editRow.caption_count),
+          humor_flavor_id: Number(editRow.humor_flavor_id),
+          ...(await updateFields()),
+        }).eq('id', editRow.id)
     if (error) { alert(error.message); return }
     setEditRow(null); load()
   }
