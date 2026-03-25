@@ -12,7 +12,7 @@ function LoginContent() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://thehumorproject2-delta.vercel.app/api/auth/callback`,
+        redirectTo: redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
   }
