@@ -18,74 +18,30 @@ function LoginContent() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: 400,
-        padding: '48px',
-        background: 'var(--bg2)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-      }}>
-        {/* Logo */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{
-            display: 'inline-block',
-            background: 'var(--accent)',
-            color: '#fff',
-            fontFamily: 'IBM Plex Mono, monospace',
-            fontWeight: 500,
-            fontSize: 11,
-            padding: '4px 10px',
-            borderRadius: 4,
-            letterSpacing: '0.1em',
-            marginBottom: 16,
-          }}>ADMIN</div>
-          <h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-md p-10 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl">
+        {/* Logo Section */}
+        <div className="mb-10 text-center">
+          <div className="inline-block bg-indigo-600 text-white font-mono font-medium text-xs px-3 py-1 rounded-md tracking-widest mb-4 shadow-lg shadow-indigo-500/20">
+            ADMIN PORTAL
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
             Humor Pipeline
           </h1>
-          <p style={{ color: 'var(--text2)', fontSize: 13 }}>
-            Superadmin access only. Sign in with your Google account.
+          <p className="text-neutral-400 text-sm">
+            Superadmin access only. Sign in to continue.
           </p>
         </div>
 
         {error === 'unauthorized' && (
-          <div style={{
-            background: '#1a0a0a',
-            border: '1px solid var(--red)',
-            borderRadius: 8,
-            padding: '12px 16px',
-            marginBottom: 24,
-            color: '#fca5a5',
-            fontSize: 13,
-          }}>
-            ⚠ Your account does not have superadmin access.
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6 text-red-400 text-sm text-center font-medium">
+            ⚠ Your account does not have superadmin privileges.
           </div>
         )}
 
         <button
           onClick={handleGoogleLogin}
-          style={{
-            width: '100%',
-            padding: '12px 20px',
-            background: 'var(--bg3)',
-            border: '1px solid var(--border2)',
-            borderRadius: 8,
-            color: 'var(--text)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-          onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-          onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+          className="w-full py-3 px-4 bg-white hover:bg-neutral-100 transition-colors duration-200 rounded-lg text-neutral-900 flex items-center justify-center gap-3 text-sm font-semibold shadow-md"
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
@@ -96,8 +52,8 @@ function LoginContent() {
           Continue with Google
         </button>
 
-        <p style={{ marginTop: 24, textAlign: 'center', color: 'var(--text3)', fontSize: 12 }}>
-          Access restricted to superadmins only
+        <p className="mt-8 text-center text-neutral-500 text-xs uppercase tracking-wider font-medium">
+          Secure Environment
         </p>
       </div>
     </div>
@@ -106,7 +62,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen bg-neutral-950"></div>}>
       <LoginContent />
     </Suspense>
   )
