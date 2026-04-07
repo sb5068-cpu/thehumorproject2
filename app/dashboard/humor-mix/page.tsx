@@ -32,6 +32,7 @@ export default function HumorMixPage() {
           humor_flavor_id: Number(editRow.humor_flavor_id),
           ...(await updateFields()),
         }).eq('id', editRow.id)
+    setSaving(false)
     if (error) { alert(error.message); return }
     setEditRow(null); load()
   }
